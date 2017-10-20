@@ -3,6 +3,7 @@
 
 all:
 	$(MAKE) -C source/
+	$(MAKE) -C source2/
 
 clean:
 	$(MAKE) -C source/ clean
