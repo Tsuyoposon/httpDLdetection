@@ -10,17 +10,30 @@ radix_tree<std::string, int> tree;
 
 void insert() {
 
-  tree["affair"]    = 3;
-  tree["afford"]    = 1;
-  tree["apache"]    = 0;
-  tree["available"] = 2;
-  tree["avenger"]   = 4;
-  tree["binary"]    = 5;
-  tree["bind"]      = 6;
-  tree["blind"]     = 9;
-  tree["brace"]     = 8;
-  tree["bro"]       = 10;
-  tree["brother"]   = 7;
+  std::bitset<8> bs;
+
+  bs = 0b10000011;
+  tree.insert(std::pair<std::string, int>(bs.to_string(), 1));
+  bs = 0b01110101;
+  tree.insert(std::pair<std::string, int>(bs.to_string(), 2));
+  bs = 0b10101110;
+  tree.insert(std::pair<std::string, int>(bs.to_string(), 3));
+  bs = 0b01110111;
+  tree.insert(std::pair<std::string, int>(bs.to_string(), 4));
+  bs = 0b10110101;
+  tree.insert(std::pair<std::string, int>(bs.to_string(), 5));
+  bs = 0b01011010;
+  tree.insert(std::pair<std::string, int>(bs.to_string(), 6));
+  bs = 0b01001011;
+  tree.insert(std::pair<std::string, int>(bs.to_string(), 7));
+  bs = 0b01101001;
+  tree.insert(std::pair<std::string, int>(bs.to_string(), 8));
+  bs = 0b10101000;
+  tree.insert(std::pair<std::string, int>(bs.to_string(), 9));
+  bs = 0b11010111;
+  tree.insert(std::pair<std::string, int>(bs.to_string(), 10));
+
+
 }
 
 void longest_match(std::string key)
@@ -78,11 +91,7 @@ void traverse() {
 int main()
 {
     insert();
-    std::string str = "a";
 
-    longest_match("binder");
-    longest_match("bracelet");
-    longest_match("apple");
 
 
 
