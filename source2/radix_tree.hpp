@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <iomanip>
 
 #include "radix_tree_it.hpp"
 #include "radix_tree_node.hpp"
@@ -72,6 +73,7 @@ public:
     void prefix_match(const K &key, std::vector<iterator> &vec);
     void greedy_match(const K &key,  std::vector<iterator> &vec);
     iterator longest_match(const K &key);
+    void signature_match(const K &key, std::vector<iterator> &vec);
 
     T& operator[] (const K &lhs);
 
@@ -81,9 +83,11 @@ private:
 
     radix_tree_node<K, T>* begin(radix_tree_node<K, T> *node);
     radix_tree_node<K, T>* find_node(const K &key, radix_tree_node<K, T> *node, int depth);
+    void find_node_valu(radix_tree_node<K, T> *node, int depth);
     radix_tree_node<K, T>* append(radix_tree_node<K, T> *parent, const value_type &val);
     radix_tree_node<K, T>* prepend(radix_tree_node<K, T> *node, const value_type &val);
     void greedy_match(radix_tree_node<K, T> *node, std::vector<iterator> &vec);
+
 
     radix_tree(const radix_tree& other); // delete
     radix_tree& operator =(const radix_tree other); // delete
@@ -463,20 +467,62 @@ typename radix_tree<K, T>::iterator radix_tree<K, T>::find(const K &key)
     return iterator(node);
 }
 
+// シグネチャ検索用
+template <typename K, typename T>
+void radix_tree<K, T>::signature_match(const K &key, std::vector<iterator> &vec)
+{
+    //    std::cout << "root_node:" << node->m_key << std::endl;
+    //        std::cout << "totyuu_node:" << it->second->m_key << ", " << it->second->m_depth << std::endl;
+    vec.clear();
+
+    if (m_root == NULL)
+        return;
+
+    std::cout << "node_start" << std::endl;
+
+    find_node_valu(m_root, 0);
+
+    return;
+
+}
+
+template <typename K, typename T>
+void radix_tree<K, T>::find_node_valu(radix_tree_node<K, T> *node, int depth)
+{
+  if(node == NULL)
+    return;
+
+  typename radix_tree_node<K, T>::it_child it;
+  it = node->m_children.begin();
+
+  find_node_valu(it->second, depth + 1);
+
+  if (node->m_is_leaf){
+    std::cout << "node2:" << node->m_key << ", depth:" << depth << std::endl;
+  }else{
+    std::cout << "node:" << node->m_key << ", depth:" << depth << std::endl;
+    ++it;
+    find_node_valu(it->second, depth + 1);
+  }
+  
+  return;
+}
+
+
 template <typename K, typename T>
 radix_tree_node<K, T>* radix_tree<K, T>::find_node(const K &key, radix_tree_node<K, T> *node, int depth)
 {
     if (node->m_children.empty())
         return node;
 
-//    std::cout << "root_node:" << node->m_key << std::endl;
+
 
     typename radix_tree_node<K, T>::it_child it;
     int len_key = radix_length(key) - depth;
 
     for (it = node->m_children.begin(); it != node->m_children.end(); ++it) {
 
-//        std::cout << "totyuu_node:" << it->second->m_key << ", " << it->second->m_depth << std::endl;
+
 
         if (len_key == 0) {
             if (it->second->m_is_leaf)
