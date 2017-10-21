@@ -83,7 +83,7 @@ private:
 
     radix_tree_node<K, T>* begin(radix_tree_node<K, T> *node);
     radix_tree_node<K, T>* find_node(const K &key, radix_tree_node<K, T> *node, int depth);
-    void find_node_valu(radix_tree_node<K, T> *node, int depth);
+    void find_node_value(radix_tree_node<K, T> *node, int depth);
     radix_tree_node<K, T>* append(radix_tree_node<K, T> *parent, const value_type &val);
     radix_tree_node<K, T>* prepend(radix_tree_node<K, T> *node, const value_type &val);
     void greedy_match(radix_tree_node<K, T> *node, std::vector<iterator> &vec);
@@ -480,14 +480,14 @@ void radix_tree<K, T>::signature_match(const K &key, std::vector<iterator> &vec)
 
     std::cout << "node_start" << std::endl;
 
-    find_node_valu(m_root, 0);
+    find_node_value(m_root, 0);
 
     return;
 
 }
 
 template <typename K, typename T>
-void radix_tree<K, T>::find_node_valu(radix_tree_node<K, T> *node, int depth)
+void radix_tree<K, T>::find_node_value(radix_tree_node<K, T> *node, int depth)
 {
   if(node == NULL)
     return;
@@ -495,16 +495,20 @@ void radix_tree<K, T>::find_node_valu(radix_tree_node<K, T> *node, int depth)
   typename radix_tree_node<K, T>::it_child it;
   it = node->m_children.begin();
 
-  find_node_valu(it->second, depth + 1);
+  find_node_value(it->second, depth + 1);
 
   if (node->m_is_leaf){
-    std::cout << "node2:" << node->m_key << ", depth:" << depth << std::endl;
+    radix_tree<std::string, int>::iterator leaf;
+    leaf = node;
+    std::cout << std::setw(depth * 2) << "" << "[" << depth << "]"
+    << "leaf:" << leaf->first << std::endl;
   }else{
-    std::cout << "node:" << node->m_key << ", depth:" << depth << std::endl;
+    std::cout  << std::setw(depth * 2) << "" << "[" << depth << "]"
+    << "node:" << node->m_key << std::endl;
     ++it;
-    find_node_valu(it->second, depth + 1);
+    find_node_value(it->second, depth + 1);
   }
-  
+
   return;
 }
 
