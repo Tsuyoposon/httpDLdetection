@@ -79,9 +79,15 @@ void greedy_match(std::string key)
     }
 }
 
+void indicate_radix()
+{
+  tree.indicate_radix();
+}
+
 void signature_match(std::string key)
 {
   std::vector<radix_tree<std::string, int>::iterator> vec;
+  std::vector<radix_tree<std::string, int>::iterator>::iterator it;
 
   tree.signature_match(key, vec);
 
@@ -99,12 +105,10 @@ void traverse() {
 int main()
 {
     insert();
-
-
     traverse();
+    // indicate_radix();
 
-    signature_match("aaa");
-
+    signature_match("11111110");
 
     return EXIT_SUCCESS;
 }
