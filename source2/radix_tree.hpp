@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <iomanip>
 
 #include "radix_tree_it.hpp"
 #include "radix_tree_node.hpp"
@@ -71,7 +72,11 @@ public:
     void erase(iterator it);
     void prefix_match(const K &key, std::vector<iterator> &vec);
     void greedy_match(const K &key,  std::vector<iterator> &vec);
+    //シグネチャ検索関数、検索シグネチャ内に葉のシグネチャが内包しているか探す（追加した）
+    void signature_match(const K &key, std::vector<iterator> &vec);
     iterator longest_match(const K &key);
+    //トライ木表示用関数、メイン関数で呼び出す（追加した）
+    void indicate_radix();
 
     T& operator[] (const K &lhs);
 
@@ -81,13 +86,49 @@ private:
 
     radix_tree_node<K, T>* begin(radix_tree_node<K, T> *node);
     radix_tree_node<K, T>* find_node(const K &key, radix_tree_node<K, T> *node, int depth);
+    //トライ木表示関数で使う、値を調べる関数（追加した）
+    void find_node_value(radix_tree_node<K, T> *node, int depth);
+    //シグネチャ検索関数で使う、内包しているシグネチャを探す関数（追加した）
+    void search_connotation(radix_tree_node<K, T> *node, int tree_depth, int sig_depth, const K &key);
     radix_tree_node<K, T>* append(radix_tree_node<K, T> *parent, const value_type &val);
     radix_tree_node<K, T>* prepend(radix_tree_node<K, T> *node, const value_type &val);
     void greedy_match(radix_tree_node<K, T> *node, std::vector<iterator> &vec);
 
+
     radix_tree(const radix_tree& other); // delete
     radix_tree& operator =(const radix_tree other); // delete
 };
+
+//シグネチャ検索関数、検索シグネチャ内に葉のシグネチャが内包しているか探す（追加した）
+template <typename K, typename T>
+void radix_tree<K, T>::signature_match(const K &key, std::vector<iterator> &vec)
+{
+    vec.clear();
+
+    if (m_root == NULL)
+        return;
+
+
+    search_connotation(m_root, 0, 0, key);
+
+}
+// トライ木の表示関数
+template <typename K, typename T>
+void radix_tree<K, T>::indicate_radix()
+{
+    //    std::cout << "root_node:" << node->m_key << std::endl;
+    //        std::cout << "totyuu_node:" << it->second->m_key << ", " << it->second->m_depth << std::endl;
+
+    if (m_root == NULL)
+        return;
+
+    std::cout << "indicate_radix" << std::endl;
+
+    find_node_value(m_root, 0);
+
+    return;
+
+}
 
 template <typename K, typename T>
 void radix_tree<K, T>::prefix_match(const K &key, std::vector<iterator> &vec)
@@ -114,6 +155,8 @@ void radix_tree<K, T>::prefix_match(const K &key, std::vector<iterator> &vec)
 
     greedy_match(node, vec);
 }
+
+
 
 template <typename K, typename T>
 typename radix_tree<K, T>::iterator radix_tree<K, T>::longest_match(const K &key)
@@ -448,6 +491,97 @@ std::pair<typename radix_tree<K, T>::iterator, bool> radix_tree<K, T>::insert(co
     }
 }
 
+//トライ木表示用関数
+template <typename K, typename T>
+void radix_tree<K, T>::find_node_value(radix_tree_node<K, T> *node, int depth)
+{
+  if(node == NULL)
+    return;
+
+  typename radix_tree_node<K, T>::it_child it;
+
+  it = node->m_children.begin();
+
+
+  std::cout << "右" << "[" << depth << "]" << std::endl;
+  find_node_value(it->second, depth + 1);
+
+  if (node->m_is_leaf){
+    std::cout << "node" << "[" << depth << "]" << std::endl;
+    // radix_tree<std::string, int>::iterator leaf;
+    // leaf = node;
+    // std::cout << std::setw(depth * 2) << "" << "[" << depth << "]"
+    // << "leaf:" << leaf->first << std::endl;
+  }else{
+    std::cout  << std::setw(depth * 2) << "" << "[" << depth << "]"
+    << "node:" << node->m_key << std::endl;
+    it = node->m_children.begin();
+    ++it;
+     std::cout << "左" << "[" << depth << "]" << std::endl;
+
+    find_node_value(it->second, depth + 1);
+
+  }
+
+  return;
+}
+
+//シグネチャが内容しているか検索関数
+template <typename K, typename T>
+void radix_tree<K, T>::search_connotation(radix_tree_node<K, T> *node, int tree_depth, int sig_depth, const K &key)
+{
+  if(node == NULL){
+    return;
+  } else if (node->m_is_leaf){
+    radix_tree<std::string, int>::iterator leaf;
+    leaf = node;
+    std::cout << "get_leaf:" << leaf->first << std::endl;
+    return;
+  }
+
+  int sub_sig_len = 0;
+
+    // ノードの部分シグネチャが内包しているか確認
+  if(tree_depth != 0){
+    //　①部分ノードシグネチャの作成
+    std::string sub_sig_str = node->m_key.substr(1);
+    sub_sig_len = sub_sig_str.length();
+    //部分ノードシグネチャ（２進数）
+    std::bitset<512> sub_sig(sub_sig_str);
+
+    //　②部分パケットシグネチャの作成
+    std::string sub_key_str = key.substr(sig_depth, sub_sig_len);
+    //部分パケットシグネチャ（２進数）
+    std::bitset<512> sub_key(sub_key_str);
+
+    //　③パケットシグネチャ＞ノードシグネチャか調べる
+    std::bitset<512> and_bits = sub_sig & sub_key; // 論理積
+    if( and_bits == sub_sig  ||  sub_sig_len == 0){
+    //  std::cout << "部分シグネチャ内包:" << sub_sig_str << std::endl;
+    } else {
+      return;
+    }
+  }
+
+  typename radix_tree_node<K, T>::it_child it;
+  it = node->m_children.begin();
+  //std::cout << "右側サーチ" << std::endl;
+  search_connotation(it->second, tree_depth + 1, sig_depth + sub_sig_len + 1, key);
+
+
+  if( key.substr(sig_depth + sub_sig_len, 1) == "1"){
+      // パケットシグネチャの次の値が1の時左も調べる
+    ++it;
+  //  std::cout << "左側サーチ" << std::endl;
+    // std::cout << "tree_depth:" << tree_depth << std::endl;
+    // std::cout << "sig_depth:" << sig_depth << std::endl;
+    // std::cout << "sub_sig_len:" << sub_sig_len << std::endl;
+    search_connotation(it->second, tree_depth + 1, sig_depth + sub_sig_len + 1, key);
+  }
+
+  return;
+}
+
 template <typename K, typename T>
 typename radix_tree<K, T>::iterator radix_tree<K, T>::find(const K &key)
 {
@@ -469,14 +603,14 @@ radix_tree_node<K, T>* radix_tree<K, T>::find_node(const K &key, radix_tree_node
     if (node->m_children.empty())
         return node;
 
-//    std::cout << "root_node:" << node->m_key << std::endl;
+
 
     typename radix_tree_node<K, T>::it_child it;
     int len_key = radix_length(key) - depth;
 
     for (it = node->m_children.begin(); it != node->m_children.end(); ++it) {
 
-//        std::cout << "totyuu_node:" << it->second->m_key << ", " << it->second->m_depth << std::endl;
+
 
         if (len_key == 0) {
             if (it->second->m_is_leaf)
