@@ -499,20 +499,28 @@ void radix_tree<K, T>::find_node_value(radix_tree_node<K, T> *node, int depth)
     return;
 
   typename radix_tree_node<K, T>::it_child it;
+
   it = node->m_children.begin();
 
+
+  std::cout << "右" << "[" << depth << "]" << std::endl;
   find_node_value(it->second, depth + 1);
 
   if (node->m_is_leaf){
-    radix_tree<std::string, int>::iterator leaf;
-    leaf = node;
-    std::cout << std::setw(depth * 2) << "" << "[" << depth << "]"
-    << "leaf:" << leaf->first << std::endl;
+    std::cout << "node" << "[" << depth << "]" << std::endl;
+    // radix_tree<std::string, int>::iterator leaf;
+    // leaf = node;
+    // std::cout << std::setw(depth * 2) << "" << "[" << depth << "]"
+    // << "leaf:" << leaf->first << std::endl;
   }else{
     std::cout  << std::setw(depth * 2) << "" << "[" << depth << "]"
     << "node:" << node->m_key << std::endl;
+    it = node->m_children.begin();
     ++it;
+     std::cout << "左" << "[" << depth << "]" << std::endl;
+
     find_node_value(it->second, depth + 1);
+
   }
 
   return;
@@ -539,15 +547,15 @@ void radix_tree<K, T>::search_connotation(radix_tree_node<K, T> *node, int tree_
     std::string sub_sig_str = node->m_key.substr(1);
     sub_sig_len = sub_sig_str.length();
     //部分ノードシグネチャ（２進数）
-    std::bitset<8> sub_sig(sub_sig_str);
+    std::bitset<512> sub_sig(sub_sig_str);
 
     //　②部分パケットシグネチャの作成
     std::string sub_key_str = key.substr(sig_depth, sub_sig_len);
     //部分パケットシグネチャ（２進数）
-    std::bitset<8> sub_key(sub_key_str);
+    std::bitset<512> sub_key(sub_key_str);
 
     //　③パケットシグネチャ＞ノードシグネチャか調べる
-    std::bitset<8> and_bits = sub_sig & sub_key; // 論理積
+    std::bitset<512> and_bits = sub_sig & sub_key; // 論理積
     if( and_bits == sub_sig  ||  sub_sig_len == 0){
     //  std::cout << "部分シグネチャ内包:" << sub_sig_str << std::endl;
     } else {
