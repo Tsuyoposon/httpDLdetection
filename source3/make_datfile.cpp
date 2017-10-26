@@ -12,14 +12,15 @@ int main() {
 
     ifstream fs;
 
-    fs.open("source3/fix_data/100.bin", ios::in | ios::binary);
+    fs.open("test_data.txt", ios::in | ios::binary);
     if(! fs.is_open()) {
       return 0;
     }
 
     std::bitset<512> bs;
-    // fs.seekg(64, ios_base::beg);
+    fs.seekg(-64, ios_base::end);
     fs.read((char*)&bs, sizeof bs);
+
     cout << bs << endl;
 
     fs.close();
