@@ -7,12 +7,12 @@ void create_datafile();
 
 int main() {
 
-    create_datafile();
+    //create_datafile();
 
 
     ifstream fs;
 
-    fs.open("source3/fix_data/10.bin", ios::in | ios::binary);
+    fs.open("test_data.txt", ios::in | ios::binary);
     if(! fs.is_open()) {
       return 0;
     }

@@ -2,7 +2,7 @@
 #sourceのMakefileを実行させる
 
 all:
-	$(MAKE) -C source/
+	$(MAKE) -C source1/
 	$(MAKE) -C source2/
 	$(MAKE) -C source3/
 
