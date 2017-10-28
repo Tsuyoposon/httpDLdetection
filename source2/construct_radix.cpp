@@ -61,7 +61,7 @@ void insert_file_data(){
     }
 
     std::bitset<512> bs;
-    fs.seekg(64, ios_base::beg);
+    fs.seekg(-64, ios_base::end);
     fs.read((char*)&bs, sizeof bs);
     tree.insert(std::pair<std::string, int>(bs.to_string(), i));
 

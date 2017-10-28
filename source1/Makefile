@@ -1,7 +1,7 @@
 #ソースコンパイル管理
 #make で実行ファイル作成
 #clean で実行ファイルの削除
-CC	      = gcc
+CC	      = g++
 LIBS	    = -lpgen
 CFLAGS    = -Wall
 SOURCE    = main.cc readpcap.cc

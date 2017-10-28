@@ -7,19 +7,20 @@ void create_datafile();
 
 int main() {
 
-    create_datafile();
+    //create_datafile();
 
 
     ifstream fs;
 
-    fs.open("source3/fix_data/100.bin", ios::in | ios::binary);
+    fs.open("test_data.txt", ios::in | ios::binary);
     if(! fs.is_open()) {
       return 0;
     }
 
     std::bitset<512> bs;
-    // fs.seekg(64, ios_base::beg);
+    fs.seekg(-64, ios_base::end);
     fs.read((char*)&bs, sizeof bs);
+
     cout << bs << endl;
 
     fs.close();
@@ -39,7 +40,10 @@ void create_datafile(){
       return;
   }
 
-  std::bitset<1024> bs;
+  std::string damy_data("aaaaaaaaaabbbbbbbbbbcccccccccc");
+  fs.write((const char*)&damy_data, sizeof damy_data);
+
+  std::bitset<512> bs;
   bs.set(i-1);
   fs.write((const char*)&bs, sizeof bs);
 
