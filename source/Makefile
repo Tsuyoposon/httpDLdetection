@@ -4,7 +4,7 @@
 CC	      = c++
 LIBS	    = -lpgen
 CFLAGS    = -Wall
-SOURCE    = main.cpp readpcap.cpp
+SOURCE    = main.cpp
 OBJS      = $(SOURCE:.cc=.o)
 PROGRAM   = DLdetection
 

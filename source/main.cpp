@@ -11,12 +11,25 @@
 using namespace std;
 
 void insert_file_data(std::string file_path);
+bool func(const u_char* p, int l);
+bool func2(const u_char* p, int l);
+void traverse();
 
 radix_tree<std::string, int> tree;
-pgen_t* w;
+pgen_t* w, hit_packs;
+int sig_count = 0;
+int hit_sig_count = 0;
+long long int packfile_count = 0;
+bitset<512> signeture(0);
+std::vector<radix_tree<std::string, int>::iterator> vec;
+std::vector<radix_tree<std::string, int>::iterator>::iterator it;
 
 int main(){
-  pgen_t* handle = pgen_open_offline("11.pcap", PCAP_READ);
+
+  insert_file_data("./test/");
+  traverse();
+
+  pgen_t* handle = pgen_open_offline("long_rapidgor.pcap", PCAP_READ);
   w = pgen_open_offline("out.pcap", PCAP_WRITE);
   if(handle==NULL || w==NULL){
     pgen_perror("oops");
@@ -57,4 +70,116 @@ void insert_file_data(std::string file_path){
       }
     }
   } while (entry != NULL);
+}
+
+bool func(const u_char* p, int l){
+
+  bitset<512> bit_buf(0);
+  bitset<512> char_buf, buf;
+  pgen_unknown u(p,l);
+
+  //末尾64Byte分を取得
+  for(int i=1;i<=64;i++){
+    if(i<=l){
+      char_buf = p[l-i];
+      //buf
+      bit_buf <<= 8;
+      bit_buf = bit_buf | char_buf;
+    } else {
+      char_buf = 0x00;
+      bit_buf <<= 8;
+      bit_buf = bit_buf | char_buf;
+    }
+  }
+  //論理和で計算してシグネチャを生成
+  signeture = signeture | bit_buf;
+  //out.pcapに送る
+  u.send(w);
+
+
+  sig_count++;
+  //パケットがある程度溜まったらの処理
+  if (5<=sig_count){
+    sig_count=0;
+    hit_sig_count = 0;
+    //ファイルの移動のため一度閉じる
+    pgen_close(w);
+    packfile_count++;
+    int get_size = tree.signature_match(signeture.to_string(), vec);
+    for (it = vec.begin(); it != vec.end(); ++it) {
+        std::cout << "    " << (*it)->first << ", " << (*it)->second << std::endl;
+    }
+    std::cout << "get_size:" << get_size << std::endl;
+    std::cout << "signeture:" << signeture << std::endl;
+    if(0<get_size){
+      //内包パケットがあった場合
+      //細かく検索
+      pgen_t* hit_pack = pgen_open_offline("out.pcap", PCAP_READ);
+      if(hit_pack==NULL || w==NULL){
+        pgen_perror("oops");
+        return -1;
+      }
+      sniff(hit_pack, func2);
+      pgen_close(hit_pack);
+      //ファイルの移動処理
+      std::cout << "get:" << packfile_count << std::endl;
+      std::string newfile("./hit_packs/"+std::to_string(packfile_count)+".pcap");
+      rename( "out.pcap", newfile.c_str());
+    } else{
+      //内包パケットがなかった場合
+      remove("out.pcap");
+    }
+    signeture.reset();
+    std::cout << "signeture(r):" << signeture << std::endl;
+    w = pgen_open_offline("out.pcap", PCAP_WRITE);
+  }
+
+  return true;
+}
+
+bool func2(const u_char* p, int l){
+  bitset<512> bit_buf(0);
+  bitset<512> char_buf, buf;
+  pgen_unknown u(p,l);
+
+  //末尾64Byte分を取得
+  for(int i=1;i<=64;i++){
+    if(i<=l){
+      char_buf = p[l-i];
+      //buf
+      bit_buf <<= 8;
+      bit_buf = bit_buf | char_buf;
+    } else {
+      char_buf = 0x00;
+      bit_buf <<= 8;
+      bit_buf = bit_buf | char_buf;
+    }
+  }
+  //末尾64Byteがヒット文字列と同じならパケットを保存
+  for (it = vec.begin(); it != vec.end(); ++it) {
+    bitset<512> hit_bit((*it)->first);
+    if(bit_buf == hit_bit) {
+      //なんとか.pcapに送る
+      hit_sig_count++;
+      std::string hit_pack_file("./hit_pack/"+std::to_string(packfile_count)+
+      "-"+std::to_string(hit_sig_count)+".pcap");
+      pgen_t* hit_pack = pgen_open_offline(hit_pack_file.c_str(), PCAP_WRITE);
+      if(hit_pack==NULL || w==NULL){
+        pgen_perror("oops");
+        return -1;
+      }
+      u.send(hit_pack);
+      pgen_close(hit_pack);
+    }
+  }
+  return true;
+}
+
+void traverse() {
+    radix_tree<std::string, int>::iterator it;
+
+    std::cout << "traverse:" << std::endl;
+    for (it = tree.begin(); it != tree.end(); ++it) {
+        std::cout << "    " << it->first << ", " << it->second << std::endl;
+    }
 }
