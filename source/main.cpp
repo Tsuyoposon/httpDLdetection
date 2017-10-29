@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <dirent.h>
+#include <sys/stat.h>
 
 #include "header/radix_tree.hpp"
 #include "header/DLdetection.h"
@@ -14,19 +15,31 @@ void insert_file_data(std::string file_path);
 bool func(const u_char* p, int l);
 bool func2(const u_char* p, int l);
 void traverse();
+void delete_file(char *dir);
 
 radix_tree<std::string, int> tree;
 pgen_t* w, hit_packs;
 int sig_count = 0;
 int hit_sig_count = 0;
 long long int packfile_count = 0;
-bitset<512> signeture(0);
+std::bitset<2048> signeture(0);
 std::vector<radix_tree<std::string, int>::iterator> vec;
 std::vector<radix_tree<std::string, int>::iterator>::iterator it;
 
 int main(){
+  //パケットデータファイルのデータを消しておく
+  std::string str = "hit_packs/";
+  char* cstr = new char[str.size() + 1];
+  std::char_traits<char>::copy(cstr, str.c_str(), str.size() + 1);
+  delete_file(cstr);
+  std::string str2 = "hit_pack/";
+  char* cstr2 = new char[str2.size() + 1];
+  std::char_traits<char>::copy(cstr2, str2.c_str(), str2.size() + 1);
+  delete_file(cstr2);
 
+  //検知したいデータファイルからデータを入れる
   insert_file_data("./test/");
+  //トライ木の確認関数
   traverse();
 
   pgen_t* handle = pgen_open_offline("long_rapidgor.pcap", PCAP_READ);
@@ -62,8 +75,8 @@ void insert_file_data(std::string file_path){
         if(! fs.is_open()) {
           return;
         }
-        std::bitset<512> bs;
-        fs.seekg(-64, ios_base::end);
+        std::bitset<2048> bs;
+        fs.seekg(-256, ios_base::end);
         fs.read((char*)&bs, sizeof bs);
         tree.insert(std::pair<std::string, int>(bs.to_string(), i));
         fs.close();
@@ -74,12 +87,12 @@ void insert_file_data(std::string file_path){
 
 bool func(const u_char* p, int l){
 
-  bitset<512> bit_buf(0);
-  bitset<512> char_buf, buf;
+  std::bitset<2048> bit_buf(0);
+  std::bitset<2048> char_buf, buf;
   pgen_unknown u(p,l);
 
   //末尾64Byte分を取得
-  for(int i=1;i<=64;i++){
+  for(int i=1;i<=256;i++){
     if(i<=l){
       char_buf = p[l-i];
       //buf
@@ -99,7 +112,7 @@ bool func(const u_char* p, int l){
 
   sig_count++;
   //パケットがある程度溜まったらの処理
-  if (5<=sig_count){
+  if (10<=sig_count){
     sig_count=0;
     hit_sig_count = 0;
     //ファイルの移動のため一度閉じる
@@ -109,6 +122,7 @@ bool func(const u_char* p, int l){
     for (it = vec.begin(); it != vec.end(); ++it) {
         std::cout << "    " << (*it)->first << ", " << (*it)->second << std::endl;
     }
+    std::cout << "packfile_count:" << packfile_count << std::endl;
     std::cout << "get_size:" << get_size << std::endl;
     std::cout << "signeture:" << signeture << std::endl;
     if(0<get_size){
@@ -130,7 +144,6 @@ bool func(const u_char* p, int l){
       remove("out.pcap");
     }
     signeture.reset();
-    std::cout << "signeture(r):" << signeture << std::endl;
     w = pgen_open_offline("out.pcap", PCAP_WRITE);
   }
 
@@ -138,12 +151,12 @@ bool func(const u_char* p, int l){
 }
 
 bool func2(const u_char* p, int l){
-  bitset<512> bit_buf(0);
-  bitset<512> char_buf, buf;
+  std::bitset<2048> bit_buf(0);
+  std::bitset<2048> char_buf, buf;
   pgen_unknown u(p,l);
 
   //末尾64Byte分を取得
-  for(int i=1;i<=64;i++){
+  for(int i=1;i<=256;i++){
     if(i<=l){
       char_buf = p[l-i];
       //buf
@@ -157,7 +170,7 @@ bool func2(const u_char* p, int l){
   }
   //末尾64Byteがヒット文字列と同じならパケットを保存
   for (it = vec.begin(); it != vec.end(); ++it) {
-    bitset<512> hit_bit((*it)->first);
+    std::bitset<2048> hit_bit((*it)->first);
     if(bit_buf == hit_bit) {
       //なんとか.pcapに送る
       hit_sig_count++;
@@ -182,4 +195,31 @@ void traverse() {
     for (it = tree.begin(); it != tree.end(); ++it) {
         std::cout << "    " << it->first << ", " << it->second << std::endl;
     }
+}
+
+void delete_file(char *dir)
+{
+    DIR *dp;
+    struct dirent *ent;
+    struct stat statbuf;
+
+    if ((dp = opendir(dir)) == NULL) {
+        perror(dir);
+        exit(EXIT_FAILURE);
+    }
+    chdir(dir);
+    while ((ent = readdir(dp)) != NULL) {
+        lstat(ent->d_name, &statbuf);
+        if (S_ISDIR(statbuf.st_mode)) {
+            if (strcmp(".", ent->d_name) == 0 ||
+                strcmp("..", ent->d_name) == 0)
+                continue;
+            delete_file(ent->d_name);
+        }
+        else {
+            unlink(ent->d_name);
+        }
+    }
+    chdir("..");
+    closedir(dp);
 }
