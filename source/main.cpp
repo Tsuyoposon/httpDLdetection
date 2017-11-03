@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <dirent.h>
+#include <chrono>
 #include <sys/stat.h>
 
 #include "header/radix_tree.hpp"
@@ -21,7 +22,11 @@ radix_tree<std::string, int> tree;
 pgen_t* w, hit_packs;
 int sig_count = 0;
 int hit_sig_count = 0;
+//計測結果用
+int sig_first_hit = 0;//シグネチャ法でのヒット件数
+int sig_second_hit = 0;//詳しく調べてのヒット件数
 long long int packfile_count = 0;
+
 std::bitset<2048> signeture(0);
 std::vector<radix_tree<std::string, int>::iterator> vec;
 std::vector<radix_tree<std::string, int>::iterator>::iterator it;
@@ -37,6 +42,9 @@ int main(){
   std::char_traits<char>::copy(cstr2, str2.c_str(), str2.size() + 1);
   delete_file(cstr2);
 
+  //時間計測の処理（スタート）
+  auto start = std::chrono::system_clock::now();
+
   //検知したいデータファイルからデータを入れる
   insert_file_data("./test/");
   //トライ木の確認関数
@@ -51,6 +59,19 @@ int main(){
   sniff(handle, func);
   pgen_close(handle);
   pgen_close(w);
+
+  //時間計測の処理（終わり）
+  auto end = std::chrono::system_clock::now();
+  auto dur = end - start;
+  auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(dur).count();
+  double first_hit = static_cast<double>(sig_first_hit)/static_cast<double>(packfile_count);
+  double second_hit = static_cast<double>(sig_second_hit)/static_cast<double>(sig_first_hit);
+  std::cout << "search_time:" << first_hit << std::endl;
+  std::cout << "search_time:" << msec << std::endl;
+  std::cout << "first_hit:(" << sig_first_hit << "/" << packfile_count << ")" <<
+  first_hit*100 << "%"<< std::endl;
+  std::cout << "second_hit:(" << sig_second_hit << "/" << sig_first_hit << ")" <<
+  second_hit*100 << "%"<< std::endl;
 }
 
 
@@ -112,7 +133,7 @@ bool func(const u_char* p, int l){
 
   sig_count++;
   //パケットがある程度溜まったらの処理
-  if (10<=sig_count){
+  if (15<=sig_count){
     sig_count=0;
     hit_sig_count = 0;
     //ファイルの移動のため一度閉じる
@@ -127,6 +148,7 @@ bool func(const u_char* p, int l){
     std::cout << "signeture:" << signeture << std::endl;
     if(0<get_size){
       //内包パケットがあった場合
+      sig_first_hit++;
       //細かく検索
       pgen_t* hit_pack = pgen_open_offline("out.pcap", PCAP_READ);
       if(hit_pack==NULL || w==NULL){
@@ -172,6 +194,7 @@ bool func2(const u_char* p, int l){
   for (it = vec.begin(); it != vec.end(); ++it) {
     std::bitset<2048> hit_bit((*it)->first);
     if(bit_buf == hit_bit) {
+      sig_second_hit++;
       //なんとか.pcapに送る
       hit_sig_count++;
       std::string hit_pack_file("./hit_pack/"+std::to_string(packfile_count)+

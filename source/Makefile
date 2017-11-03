@@ -3,7 +3,7 @@
 #clean で実行ファイルの削除
 CC	      = c++
 LIBS	    = -lpgen
-CFLAGS    = -Wall
+CFLAGS    = -Wall -std=c++11
 SOURCE    = main.cpp
 OBJS      = $(SOURCE:.cc=.o)
 PROGRAM   = DLdetection
