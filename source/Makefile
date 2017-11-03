@@ -1,24 +1,21 @@
 #ソースコンパイル管理
 #make で実行ファイル作成
 #clean で実行ファイルの削除
-CC	      = g++
+CC	      = c++
 LIBS	    = -lpgen
-CFLAGS    = -Wall
-SOURCE    = main.cc readpcap.cc
+CFLAGS    = -Wall -std=c++11
+SOURCE    = main.cpp
 OBJS      = $(SOURCE:.cc=.o)
-PROGRAM   = search_pcap
+PROGRAM   = DLdetection
 
 .PHONY: all
 all:	$(PROGRAM)
 
-$(PROGRAM):	$(OBJS)
-		$(CC) $(OBJS) $(LIBS) -o $(PROGRAM)
+$(PROGRAM):
+		$(CC) -o $(PROGRAM) $(SOURCE) $(CFLAGS) $(LIBS)
 		mv $(PROGRAM) ../
 
-.c.o:
-		$(CC) $(CFLAGS) -c $(LIBS)
 
 .PHONY: clean
 clean:
 		$(RM) ../$(PROGRAM)
-		$(RM) $(OBJS)

@@ -4,6 +4,9 @@
 #include <bitset>
 #include <sstream>
 #include <fstream>
+#include <iostream>
+#include <cstdlib>
+#include <dirent.h>
 using namespace std;
 
 #include "radix_tree.hpp"
@@ -51,24 +54,34 @@ void insert() {
 
 void insert_file_data(){
 
-  for(int i=1;i <= 100; i++){
+  const char* path = "source3/fix_data/";
+  DIR *dp;       // ディレクトリへのポインタ
+  dirent* entry; // readdir() で返されるエントリーポイント
+  int i=0;
+  std::string d_buf;
 
-    ifstream fs;
-
-    fs.open("source3/fix_data/" + std::to_string(i)+ ".bin", ios::in | ios::binary);
-    if(! fs.is_open()) {
-      return;
+  dp = opendir(path);
+  if (dp==NULL) exit(1);
+  do {
+    entry = readdir(dp);
+    if (entry != NULL){
+      std::cout << path << entry->d_name << std::endl;
+      d_buf = std::string(path) + std::string(entry->d_name);
+      i++;
+      if (2<i){
+        ifstream fs;
+        fs.open(d_buf, ios::in | ios::binary);
+        if(! fs.is_open()) {
+          return;
+        }
+        std::bitset<512> bs;
+        fs.seekg(-64, ios_base::end);
+        fs.read((char*)&bs, sizeof bs);
+        tree.insert(std::pair<std::string, int>(bs.to_string(), i));
+        fs.close();
+      }
     }
-
-    std::bitset<512> bs;
-    fs.seekg(-64, ios_base::end);
-    fs.read((char*)&bs, sizeof bs);
-    tree.insert(std::pair<std::string, int>(bs.to_string(), i));
-
-    fs.close();
-  }
-
-
+  } while (entry != NULL);
 
 }
 
@@ -120,12 +133,22 @@ void indicate_radix()
   tree.indicate_radix();
 }
 
-void signature_match(std::string key)
+int signature_match(std::string key)
 {
   std::vector<radix_tree<std::string, int>::iterator> vec;
   std::vector<radix_tree<std::string, int>::iterator>::iterator it;
 
-  tree.signature_match(key, vec);
+  int get_size = tree.signature_match(key, vec);
+
+  std::cout << "signature_match(\"" << key << "\"):" << std::endl;
+
+  for (it = vec.begin(); it != vec.end(); ++it) {
+      std::cout << "    " << (*it)->first << ", " << (*it)->second << std::endl;
+  }
+
+  std::cout << "get_size:" << get_size << std::endl;
+  return vec.size();
+
 
 }
 
@@ -142,7 +165,7 @@ int main()
 {
     //insert();
     insert_file_data();
-    traverse();
+    //traverse();
     //indicate_radix();
     //prefix_match("0000000001");
     //               1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

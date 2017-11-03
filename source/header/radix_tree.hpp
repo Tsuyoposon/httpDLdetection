@@ -548,15 +548,15 @@ void radix_tree<K, T>::search_connotation(radix_tree_node<K, T> *node, int tree_
     std::string sub_sig_str = node->m_key.substr(1);
     sub_sig_len = sub_sig_str.length();
     //部分ノードシグネチャ（２進数）
-    std::bitset<512> sub_sig(sub_sig_str);
+    std::bitset<2048> sub_sig(sub_sig_str);
 
     //　②部分パケットシグネチャの作成
     std::string sub_key_str = key.substr(sig_depth, sub_sig_len);
     //部分パケットシグネチャ（２進数）
-    std::bitset<512> sub_key(sub_key_str);
+    std::bitset<2048> sub_key(sub_key_str);
 
     //　③パケットシグネチャ＞ノードシグネチャか調べる
-    std::bitset<512> and_bits = sub_sig & sub_key; // 論理積
+    std::bitset<2048> and_bits = sub_sig & sub_key; // 論理積
     if( and_bits == sub_sig  ||  sub_sig_len == 0){
     //  std::cout << "部分シグネチャ内包:" << sub_sig_str << std::endl;
     } else {
