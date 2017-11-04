@@ -25,7 +25,12 @@ int hit_sig_count = 0;
 //計測結果用
 int sig_first_hit = 0;//シグネチャ法でのヒット件数
 int sig_second_hit = 0;//詳しく調べてのヒット件数
+int get_size;
 long long int packfile_count = 0;
+std::string newfile;
+
+std::bitset<2048> bit_buf(0);
+std::bitset<2048> char_buf;
 
 std::bitset<2048> signeture(0);
 std::vector<radix_tree<std::string, int>::iterator> vec;
@@ -46,7 +51,7 @@ int main(){
   auto start = std::chrono::system_clock::now();
 
   //検知したいデータファイルからデータを入れる
-  insert_file_data("./test/");
+  insert_file_data("./source3/test_data_files/");
   //トライ木の確認関数
   traverse();
 
@@ -66,7 +71,6 @@ int main(){
   auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(dur).count();
   double first_hit = static_cast<double>(sig_first_hit)/static_cast<double>(packfile_count);
   double second_hit = static_cast<double>(sig_second_hit)/static_cast<double>(sig_first_hit);
-  std::cout << "search_time:" << first_hit << std::endl;
   std::cout << "search_time:" << msec << std::endl;
   std::cout << "first_hit:(" << sig_first_hit << "/" << packfile_count << ")" <<
   first_hit*100 << "%"<< std::endl;
@@ -107,9 +111,8 @@ void insert_file_data(std::string file_path){
 }
 
 bool func(const u_char* p, int l){
+  bit_buf.reset();
 
-  std::bitset<2048> bit_buf(0);
-  std::bitset<2048> char_buf, buf;
   pgen_unknown u(p,l);
 
   //末尾64Byte分を取得
@@ -133,19 +136,19 @@ bool func(const u_char* p, int l){
 
   sig_count++;
   //パケットがある程度溜まったらの処理
-  if (15<=sig_count){
+  if (10<=sig_count){
     sig_count=0;
     hit_sig_count = 0;
     //ファイルの移動のため一度閉じる
     pgen_close(w);
     packfile_count++;
-    int get_size = tree.signature_match(signeture.to_string(), vec);
-    for (it = vec.begin(); it != vec.end(); ++it) {
-        std::cout << "    " << (*it)->first << ", " << (*it)->second << std::endl;
-    }
-    std::cout << "packfile_count:" << packfile_count << std::endl;
-    std::cout << "get_size:" << get_size << std::endl;
-    std::cout << "signeture:" << signeture << std::endl;
+    get_size = tree.signature_match(signeture.to_string(), vec);
+    // for (it = vec.begin(); it != vec.end(); ++it) {
+    //     std::cout << "    " << (*it)->first << ", " << (*it)->second << std::endl;
+    // }
+    // std::cout << "packfile_count:" << packfile_count << std::endl;
+    // std::cout << "get_size:" << get_size << std::endl;
+    // std::cout << "signeture:" << signeture << std::endl;
     if(0<get_size){
       //内包パケットがあった場合
       sig_first_hit++;
@@ -158,8 +161,8 @@ bool func(const u_char* p, int l){
       sniff(hit_pack, func2);
       pgen_close(hit_pack);
       //ファイルの移動処理
-      std::cout << "get:" << packfile_count << std::endl;
-      std::string newfile("./hit_packs/"+std::to_string(packfile_count)+".pcap");
+      // std::cout << "get:" << packfile_count << std::endl;
+      newfile = "./hit_packs/"+std::to_string(packfile_count)+".pcap";
       rename( "out.pcap", newfile.c_str());
     } else{
       //内包パケットがなかった場合
@@ -173,8 +176,7 @@ bool func(const u_char* p, int l){
 }
 
 bool func2(const u_char* p, int l){
-  std::bitset<2048> bit_buf(0);
-  std::bitset<2048> char_buf, buf;
+  bit_buf.reset();
   pgen_unknown u(p,l);
 
   //末尾64Byte分を取得
