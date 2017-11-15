@@ -7,6 +7,7 @@ make_data
 search_pcap
 
 source3/fix_data/
+source3/test_data_files/
 hit_pack/
 hit_packs/
 test/
