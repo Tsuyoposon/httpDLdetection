@@ -18,11 +18,13 @@ bool func2(const u_char* p, int l);
 void traverse();
 void delete_file(char *dir);
 
+int SIGCOUNT = 100;
+
 radix_tree<std::string, int> tree;
 pgen_t* w, hit_packs;
-std::vector<std::string> pack_bufs(10);//10件のパケットデータ(末尾256Byte)を保持
-const u_char* pack_bufs_p[10];
-int pack_bufs_length[10];
+std::vector<std::string> pack_bufs(100);//10件のパケットデータ(末尾256Byte)を保持
+const u_char* pack_bufs_p[100];
+int pack_bufs_length[100];
 
 
 int sig_count = 0;
@@ -134,7 +136,7 @@ bool func(const u_char* p, int l){
 
   sig_count++;
   //パケットがある程度溜まったらの処理
-  if (10<=sig_count){
+  if (SIGCOUNT<=sig_count){
     sig_count=0;
     hit_sig_count = 0;
     //ファイルの移動のため一度閉じる
@@ -151,7 +153,7 @@ bool func(const u_char* p, int l){
       //内包パケットがあった場合
       sig_first_hit++;
       //細かく検索
-      for(int i=0;i<10;i++){
+      for(int i=0;i<SIGCOUNT;i++){
         for (it = vec.begin(); it != vec.end(); ++it) {
             if((*it)->first == pack_bufs[i]){
               sig_second_hit++;
