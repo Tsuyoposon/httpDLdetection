@@ -1,3 +1,5 @@
+*.DS_Store
+
 source1/main.o
 source1/readpcap.o
 
