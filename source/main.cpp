@@ -20,6 +20,11 @@ void delete_file(char *dir);
 
 radix_tree<std::string, int> tree;
 pgen_t* w, hit_packs;
+std::vector<std::string> pack_bufs(10);//10件のパケットデータ(末尾256Byte)を保持
+const u_char* pack_bufs_p[10];
+int pack_bufs_length[10];
+
+
 int sig_count = 0;
 int hit_sig_count = 0;
 //計測結果用
@@ -53,17 +58,17 @@ int main(){
   //検知したいデータファイルからデータを入れる
   insert_file_data("./source3/test_data_files/");
   //トライ木の確認関数
-  traverse();
+  // traverse();
 
   pgen_t* handle = pgen_open_offline("long_rapidgor.pcap", PCAP_READ);
-  w = pgen_open_offline("out.pcap", PCAP_WRITE);
-  if(handle==NULL || w==NULL){
+  // w = pgen_open_offline("out.pcap", PCAP_WRITE);
+  if(handle==NULL){
     pgen_perror("oops");
     return -1;
   }
   sniff(handle, func);
   pgen_close(handle);
-  pgen_close(w);
+  // pgen_close(w);
 
   //時間計測の処理（終わり）
   auto end = std::chrono::system_clock::now();
@@ -91,7 +96,7 @@ void insert_file_data(std::string file_path){
   do {
     entry = readdir(dp);
     if (entry != NULL){
-      std::cout << path << entry->d_name << std::endl;
+      // std::cout << path << entry->d_name << std::endl;
       d_buf = std::string(path) + std::string(entry->d_name);
       i++;
       if (2<i){
@@ -112,9 +117,10 @@ void insert_file_data(std::string file_path){
 
 bool func(const u_char* p, int l){
   bit_buf.reset();
-
   pgen_unknown u(p,l);
-
+  // pgen_unknown u(p,l);
+  pack_bufs_p[sig_count] = p;
+  pack_bufs_length[sig_count] = l;
   //末尾64Byte分を取得
   for(int i=1;i<=256;i++){
     if(i<=l){
@@ -131,8 +137,8 @@ bool func(const u_char* p, int l){
   //論理和で計算してシグネチャを生成
   signeture = signeture | bit_buf;
   //out.pcapに送る
-  u.send(w);
-
+  // u.send(w);
+  pack_bufs[sig_count] = bit_buf.to_string();
 
   sig_count++;
   //パケットがある程度溜まったらの処理
@@ -140,7 +146,7 @@ bool func(const u_char* p, int l){
     sig_count=0;
     hit_sig_count = 0;
     //ファイルの移動のため一度閉じる
-    pgen_close(w);
+    // pgen_close(w);
     packfile_count++;
     get_size = tree.signature_match(signeture.to_string(), vec);
     // for (it = vec.begin(); it != vec.end(); ++it) {
@@ -153,23 +159,34 @@ bool func(const u_char* p, int l){
       //内包パケットがあった場合
       sig_first_hit++;
       //細かく検索
-      pgen_t* hit_pack = pgen_open_offline("out.pcap", PCAP_READ);
-      if(hit_pack==NULL || w==NULL){
-        pgen_perror("oops");
-        return -1;
+      for(int i=0;i<10;i++){
+        for (it = vec.begin(); it != vec.end(); ++it) {
+            if((*it)->first == pack_bufs[i]){
+              sig_second_hit++;
+              std::cout << "get_length:" << pack_bufs_length[i] << std::endl;
+              pgen_unknown u3(pack_bufs_p[i],pack_bufs_length[i]);
+              u3.hex();
+            }
+        }
+
       }
-      sniff(hit_pack, func2);
-      pgen_close(hit_pack);
+      // pgen_t* hit_pack = pgen_open_offline("out.pcap", PCAP_READ);
+      // if(hit_pack==NULL || w==NULL){
+      //   pgen_perror("oops");
+      //   return -1;
+      // }
+      // sniff(hit_pack, func2);
+      // pgen_close(hit_pack);
       //ファイルの移動処理
       // std::cout << "get:" << packfile_count << std::endl;
-      newfile = "./hit_packs/"+std::to_string(packfile_count)+".pcap";
-      rename( "out.pcap", newfile.c_str());
+      // newfile = "./hit_packs/"+std::to_string(packfile_count)+".pcap";
+      // rename( "out.pcap", newfile.c_str());
     } else{
       //内包パケットがなかった場合
-      remove("out.pcap");
+      // remove("out.pcap");
     }
     signeture.reset();
-    w = pgen_open_offline("out.pcap", PCAP_WRITE);
+    // w = pgen_open_offline("out.pcap", PCAP_WRITE);
   }
 
   return true;
