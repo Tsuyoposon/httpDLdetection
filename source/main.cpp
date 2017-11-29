@@ -18,17 +18,18 @@ bool func2(const u_char* p, int l);
 void traverse();
 void delete_file(char *dir);
 
-int SIGCOUNT = 100;
+int SIGCOUNT = 10;
 
 radix_tree<std::string, int> tree;
 pgen_t* w, hit_packs;
-std::vector<std::string> pack_bufs(100);//10件のパケットデータ(末尾256Byte)を保持
-const u_char* pack_bufs_p[100];
-int pack_bufs_length[100];
+std::vector<std::string> pack_bufs(10);//10件のパケットデータ(末尾16Byte)を保持
+const u_char* pack_bufs_p[10];
+int pack_bufs_length[10];
 
 
 int sig_count = 0;
 int hit_sig_count = 0;
+int total_hit_count = 0;
 //計測結果用
 int insert_file_count = 0;//登録シグネチャの件数
 int sig_first_hit = 0;//シグネチャ法でのヒット件数
@@ -37,10 +38,10 @@ int get_size;
 long long int packfile_count = 0;
 std::string newfile;
 
-std::bitset<2048> bit_buf(0);
-std::bitset<2048> char_buf;
+std::bitset<128> bit_buf(0);
+std::bitset<128> char_buf;
 
-std::bitset<2048> signeture(0);
+std::bitset<128> signeture(0);
 std::vector<radix_tree<std::string, int>::iterator> vec;
 std::vector<radix_tree<std::string, int>::iterator>::iterator it;
 
@@ -67,10 +68,13 @@ int main(){
   auto end = std::chrono::system_clock::now();
   auto dur = end - start;
   auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(dur).count();
+  double total_hit = static_cast<double>(total_hit_count)/static_cast<double>(packfile_count * 1000);
   double first_hit = static_cast<double>(sig_first_hit)/static_cast<double>(packfile_count);
   double second_hit = static_cast<double>(sig_second_hit)/static_cast<double>(sig_first_hit);
   std::cout << "registration_file:" << insert_file_count << std::endl;
   std::cout << "search_time:" << msec << std::endl;
+  std::cout << "total_hit_count:(" << total_hit_count << "/" << packfile_count * 1000 <<")" <<
+  total_hit*100 << "%"<< std::endl;
   std::cout << "first_hit:(" << sig_first_hit << "/" << packfile_count << ")" <<
   first_hit*100 << "%"<< std::endl;
   std::cout << "second_hit:(" << sig_second_hit << "/" << sig_first_hit << ")" <<
@@ -99,8 +103,8 @@ void insert_file_data(std::string file_path){
         if(! fs.is_open()) {
           return;
         }
-        std::bitset<2048> bs;
-        fs.seekg(-256, ios_base::end);
+        std::bitset<128> bs;
+        fs.seekg(-16, ios_base::end);
         fs.read((char*)&bs, sizeof bs);
         tree.insert(std::pair<std::string, int>(bs.to_string(), i));
         fs.close();
@@ -115,8 +119,8 @@ bool func(const u_char* p, int l){
   // pgen_unknown u(p,l);
   pack_bufs_p[sig_count] = p;
   pack_bufs_length[sig_count] = l;
-  //末尾64Byte分を取得
-  for(int i=1;i<=256;i++){
+  //末尾16Byte分を取得
+  for(int i=1;i<=16;i++){
     if(i<=l){
       char_buf = p[l-i];
       //buf
@@ -149,6 +153,7 @@ bool func(const u_char* p, int l){
     // std::cout << "packfile_count:" << packfile_count << std::endl;
     // std::cout << "get_size:" << get_size << std::endl;
     // std::cout << "signeture:" << signeture << std::endl;
+    total_hit_count = total_hit_count + get_size;
     if(0 < get_size){
       //内包パケットがあった場合
       sig_first_hit++;

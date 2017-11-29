@@ -71,7 +71,7 @@ void create_datafile(){
 
 void create_test_data(){
 
-  for(int i=1;i <= 99; i++){
+  for(int i=1;i <= 999; i++){
 
   fstream fs;
   fs.open("source3/test_data_files/" + std::to_string(i)+".bin", ios::out);
