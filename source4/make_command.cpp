@@ -16,7 +16,7 @@ int main() {
   create_test_data();
 
   read_file_command("./source3/test_data_files/");
-
+  read_file_command2("./source3/test_data_files/");
   // for(int i=1;i <= 1000; i++){
   //
   //   fstream fs;
@@ -39,8 +39,8 @@ std::string create_rand_str(){
   std::string str(256, '1');
   std::bitset<8> bs_char;
   for(int i=0;i<256;i++){
-    int ran = rand() % 220 + 35;
-      if (ran == 92 || ran == 36){
+    int ran = rand() % 212 + 43;
+      if (ran == 92 || ran == 36 || ran == 124 || ran == 91){
         ran = 90;
       }
     str[i] = ran;
@@ -120,7 +120,7 @@ void read_file_command2(std::string file_path){
   dirent* entry; // readdir() で返されるエントリーポイント
   int i=0;
   std::string d_buf;
-  std::string all_footers("frame contains \"");
+  std::string all_footers("time ngrep -I long_rapidgor.pcap -q '");
 
   dp = opendir(path);
   if (dp==NULL) exit(1);
@@ -142,14 +142,16 @@ void read_file_command2(std::string file_path){
         std::string read_str(it, last);
         std::cout << "file_name:" << d_buf << std::endl;
         std::cout << "rad_str:" << read_str << std::endl;
-        all_footers = all_footers + read_str + "\" or frame contains \"";
+        all_footers = all_footers + read_str + "|";
         fs.close();
       }
     }
   } while (entry != NULL);
 
+  all_footers.pop_back();
+  all_footers = all_footers + "'";
   fstream write_wire;
-  write_wire.open("source4/command_wireshark2.txt", ios::out);
+  write_wire.open("command_ngrap2.sh", ios::out);
   if(! write_wire.is_open()) {
       return;
   }
