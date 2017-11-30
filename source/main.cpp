@@ -18,13 +18,13 @@ bool func2(const u_char* p, int l);
 void traverse();
 void delete_file(char *dir);
 
-int SIGCOUNT = 10;
+int SIGCOUNT = 50;
 
 radix_tree<std::string, int> tree;
 pgen_t* w, hit_packs;
-std::vector<std::string> pack_bufs(10);//10件のパケットデータ(末尾16Byte)を保持
-const u_char* pack_bufs_p[10];
-int pack_bufs_length[10];
+std::vector<std::string> pack_bufs(50);//10件のパケットデータ(末尾16Byte)を保持
+const u_char* pack_bufs_p[50];
+int pack_bufs_length[50];
 
 
 int sig_count = 0;
