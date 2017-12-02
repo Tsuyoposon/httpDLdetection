@@ -18,14 +18,14 @@ bool func2(const u_char* p, int l);
 void traverse();
 void delete_file(char *dir);
 
-int SIGCOUNT = 50;
+int SIGCOUNT = 5;
 
 radix_tree<std::string, int> tree;
 pgen_t* w, hit_packs;
-std::vector<std::string> pack_bufs(50);//10件のパケットデータ(末尾16Byte)を保持
-const u_char* pack_bufs_p[50];
-int pack_bufs_length[50];
-
+std::vector<std::string> pack_bufs(5);//10件のパケットデータ(末尾64Byte)を保持
+const u_char* pack_bufs_p[5];
+int pack_bufs_length[5];
+std::vector<std::bitset<512>> pack_bufs_binary(5);
 
 int sig_count = 0;
 int hit_sig_count = 0;
@@ -38,10 +38,11 @@ int get_size;
 long long int packfile_count = 0;
 std::string newfile;
 
-std::bitset<128> bit_buf(0);
-std::bitset<128> char_buf;
+std::bitset<512> bit_buf(0);
+std::bitset<512> char_buf;
 
-std::bitset<128> signeture(0);
+std::bitset<512> signeture(0);
+std::vector<std::bitset<512>> read_file_binary(1000);
 std::vector<radix_tree<std::string, int>::iterator> vec;
 std::vector<radix_tree<std::string, int>::iterator>::iterator it;
 
@@ -103,15 +104,20 @@ void insert_file_data(std::string file_path){
         if(! fs.is_open()) {
           return;
         }
-        std::bitset<128> bs;
-        fs.seekg(-16, ios_base::end);
+        std::bitset<512> bs;
+        fs.seekg(-64, ios_base::end);
         fs.read((char*)&bs, sizeof bs);
-        tree.insert(std::pair<std::string, int>(bs.to_string(), i));
+        read_file_binary[insert_file_count] = bs;
         fs.close();
         insert_file_count++;
+        // std::cout << "file_name:" << entry->d_name << std::endl;
       }
     }
   } while (entry != NULL);
+
+  // for(int i=0;i<insert_file_count;i++){
+  //   std::cout << "insert_file:(" << i << ")" << read_file_binary[i] << std::endl;
+  // }
 }
 
 bool func(const u_char* p, int l){
@@ -119,8 +125,8 @@ bool func(const u_char* p, int l){
   // pgen_unknown u(p,l);
   pack_bufs_p[sig_count] = p;
   pack_bufs_length[sig_count] = l;
-  //末尾16Byte分を取得
-  for(int i=1;i<=16;i++){
+  //末尾64Byte分を取得
+  for(int i=1;i<=64;i++){
     if(i<=l){
       char_buf = p[l-i];
       //buf
@@ -134,9 +140,9 @@ bool func(const u_char* p, int l){
   }
   //論理和で計算してシグネチャを生成
   signeture = signeture | bit_buf;
+  pack_bufs_binary[sig_count] = bit_buf;
   //out.pcapに送る
   // u.send(w);
-  pack_bufs[sig_count] = bit_buf.to_string();
 
   sig_count++;
   //パケットがある程度溜まったらの処理
@@ -146,30 +152,30 @@ bool func(const u_char* p, int l){
     //ファイルの移動のため一度閉じる
     // pgen_close(w);
     packfile_count++;
-    get_size = tree.signature_match(signeture.to_string(), vec);
-    // for (it = vec.begin(); it != vec.end(); ++it) {
-    //     std::cout << "    " << (*it)->first << ", " << (*it)->second << std::endl;
-    // }
-    // std::cout << "packfile_count:" << packfile_count << std::endl;
-    // std::cout << "get_size:" << get_size << std::endl;
-    // std::cout << "signeture:" << signeture << std::endl;
-    total_hit_count = total_hit_count + get_size;
-    if(0 < get_size){
-      //内包パケットがあった場合
-      sig_first_hit++;
-      //細かく検索
-      for(int i=0;i<SIGCOUNT;i++){
-        for (it = vec.begin(); it != vec.end(); ++it) {
-            if((*it)->first == pack_bufs[i]){
+    std::cout << "packfile_count:" << packfile_count << std::endl;
+    for(int k=0;k<insert_file_count;k++){
+      bit_buf = signeture & read_file_binary[k];
+      // std::cout << "bit_buf:" << bit_buf << std::endl;
+      // std::cout << "signeture:" << signeture << std::endl;
+      // std::cout << "read_file_binary[k]:" << read_file_binary[k] << std::endl;
+
+      if(bit_buf == read_file_binary[k]){ // 内包していた場合
+        // 細かく計算
+        sig_first_hit++;
+        std::cout << "sig_first_hit:" << sig_first_hit << std::endl;
+        for(int i=0;i<SIGCOUNT;i++){
+          for(int n=0;n<insert_file_count;n++){
+            if(read_file_binary[n] == pack_bufs_binary[i]){
               sig_second_hit++;
-              std::cout << "get_length:" << pack_bufs_length[i] << std::endl;
               pgen_unknown u(pack_bufs_p[i],pack_bufs_length[i]);
               u.hex();
             }
+          }
         }
       }
     }
     signeture.reset();
+    std::cout << "reset:" << std::endl;
     // w = pgen_open_offline("out.pcap", PCAP_WRITE);
   }
 

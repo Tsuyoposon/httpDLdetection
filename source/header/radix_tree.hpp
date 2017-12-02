@@ -527,10 +527,10 @@ void radix_tree<K, T>::find_node_value(radix_tree_node<K, T> *node, int depth)
 }
 
 //シグネチャが内容しているか検索関数
-std::bitset<128> sub_sig;
-std::bitset<128> sub_key;
+std::bitset<512> sub_sig;
+std::bitset<512> sub_key;
 std::string sub_key_str;
-std::bitset<128> and_bits;
+std::bitset<512> and_bits;
 std::string sub_sig_str;
 template <typename K, typename T>
 void radix_tree<K, T>::search_connotation(radix_tree_node<K, T> *node, int tree_depth, int sig_depth, const K &key, std::vector<iterator> &vec)
@@ -555,12 +555,12 @@ void radix_tree<K, T>::search_connotation(radix_tree_node<K, T> *node, int tree_
     if(sub_sig_len != 0){
 
       //部分ノードシグネチャ（２進数）
-      sub_sig = static_cast<std::bitset<128>>(sub_sig_str);
+      sub_sig = static_cast<std::bitset<512>>(sub_sig_str);
 
       //　②部分パケットシグネチャの作成
       sub_key_str = key.substr(sig_depth, sub_sig_len);
       //部分パケットシグネチャ（２進数）
-      sub_key = static_cast<std::bitset<128>>(sub_key_str);
+      sub_key = static_cast<std::bitset<512>>(sub_key_str);
 
       //　③パケットシグネチャ＞ノードシグネチャか調べる
       and_bits = sub_sig & sub_key; // 論理積
