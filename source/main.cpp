@@ -122,10 +122,6 @@ void insert_file_data(std::string file_path){
 
 bool func(const u_char* p, int l){
   bit_buf.reset();
-  // pgen_unknown u(p,l);
-  pack_bufs_p[sig_count] = p;
-  pack_bufs_length[sig_count] = l;
-  //末尾64Byte分を取得
   for(int i=1;i<=64;i++){
     if(i<=l){
       char_buf = p[l-i];
@@ -138,45 +134,18 @@ bool func(const u_char* p, int l){
       bit_buf = bit_buf | char_buf;
     }
   }
-  //論理和で計算してシグネチャを生成
-  signeture = signeture | bit_buf;
-  pack_bufs_binary[sig_count] = bit_buf;
-  //out.pcapに送る
-  // u.send(w);
 
-  sig_count++;
-  //パケットがある程度溜まったらの処理
-  if (SIGCOUNT<=sig_count){
-    sig_count=0;
-    hit_sig_count = 0;
-    //ファイルの移動のため一度閉じる
-    // pgen_close(w);
-    packfile_count++;
-    std::cout << "packfile_count:" << packfile_count << std::endl;
-    for(int k=0;k<insert_file_count;k++){
-      bit_buf = signeture & read_file_binary[k];
-      // std::cout << "bit_buf:" << bit_buf << std::endl;
-      // std::cout << "signeture:" << signeture << std::endl;
-      // std::cout << "read_file_binary[k]:" << read_file_binary[k] << std::endl;
+  packfile_count++;
+  sig_first_hit++;
+  for(int k=0;k<insert_file_count;k++){
 
-      if(bit_buf == read_file_binary[k]){ // 内包していた場合
-        // 細かく計算
-        sig_first_hit++;
-        std::cout << "sig_first_hit:" << sig_first_hit << std::endl;
-        for(int i=0;i<SIGCOUNT;i++){
-          for(int n=0;n<insert_file_count;n++){
-            if(read_file_binary[n] == pack_bufs_binary[i]){
-              sig_second_hit++;
-              pgen_unknown u(pack_bufs_p[i],pack_bufs_length[i]);
-              u.hex();
-            }
-          }
-        }
-      }
+    if(bit_buf == read_file_binary[k]){ // 内包していた場合
+      // 細かく計算
+      sig_second_hit++;
+      pgen_unknown u(p,l);
+      u.hex();
+
     }
-    signeture.reset();
-    std::cout << "reset:" << std::endl;
-    // w = pgen_open_offline("out.pcap", PCAP_WRITE);
   }
 
   return true;
