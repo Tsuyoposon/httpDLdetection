@@ -146,13 +146,14 @@ bool func(const u_char* p, int l){
 
   sig_count++;
   //パケットがある程度溜まったらの処理
+  packfile_count++;
   if (SIGCOUNT<=sig_count){
     sig_count=0;
-    hit_sig_count = 0;
+
     //ファイルの移動のため一度閉じる
     // pgen_close(w);
-    packfile_count++;
-    std::cout << "packfile_count:" << packfile_count << std::endl;
+
+    // std::cout << "packfile_count:" << packfile_count << std::endl;
     for(int k=0;k<insert_file_count;k++){
       bit_buf = signeture & read_file_binary[k];
       // std::cout << "bit_buf:" << bit_buf << std::endl;
@@ -162,7 +163,7 @@ bool func(const u_char* p, int l){
       if(bit_buf == read_file_binary[k]){ // 内包していた場合
         // 細かく計算
         sig_first_hit++;
-        std::cout << "sig_first_hit:" << sig_first_hit << std::endl;
+        // std::cout << "sig_first_hit:" << sig_first_hit << std::endl;
         for(int i=0;i<SIGCOUNT;i++){
           for(int n=0;n<insert_file_count;n++){
             if(read_file_binary[n] == pack_bufs_binary[i]){
@@ -175,7 +176,7 @@ bool func(const u_char* p, int l){
       }
     }
     signeture.reset();
-    std::cout << "reset:" << std::endl;
+    // std::cout << "reset:" << std::endl;
     // w = pgen_open_offline("out.pcap", PCAP_WRITE);
   }
 
